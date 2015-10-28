@@ -31,13 +31,13 @@ import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
-
 import marytts.exceptions.MaryConfigurationException;
 import marytts.modules.phonemiser.AllophoneSet;
 import marytts.server.MaryProperties;
 import marytts.util.io.PropertiesAccessor;
 import marytts.util.io.PropertiesTrimTrailingWhitespace;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * @author marc
@@ -45,7 +45,13 @@ import marytts.util.io.PropertiesTrimTrailingWhitespace;
  */
 public abstract class MaryConfig {
 	private static final ServiceLoader<MaryConfig> configLoader = ServiceLoader.load(MaryConfig.class);
+	private static Set<MaryConfig> configSet = new HashSet<MaryConfig>();
 
+	public static void addConfig(MaryConfig mc){
+		if(!configSet.contains(mc)){
+			configSet.add(mc);
+		}
+	}
 	/**
 	 * This method will try to check that the available configs are consistent and will spot obvious reasons why they might not
 	 * work together as a full system. Reasons that are detected include:
@@ -55,7 +61,7 @@ public abstract class MaryConfig {
 	 * </ul>
 	 * This method will return allright if everything is OK; if there is a problem, it will throw an Exception with a message
 	 * indicating the problem.
-	 * 
+	 *
 	 * @throws MaryConfigurationException
 	 *             if the configuration cannot work as it is now.
 	 */
@@ -76,7 +82,7 @@ public abstract class MaryConfig {
 	public static int countConfigs() {
 		int num = 0;
 		for (@SuppressWarnings("unused")
-		MaryConfig mc : configLoader) {
+		MaryConfig mc : getConfigs()) {
 			num++;
 		}
 		return num;
@@ -84,7 +90,7 @@ public abstract class MaryConfig {
 
 	public static int countLanguageConfigs() {
 		int num = 0;
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isLanguageConfig()) {
 				num++;
 			}
@@ -94,7 +100,7 @@ public abstract class MaryConfig {
 
 	public static int countVoiceConfigs() {
 		int num = 0;
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isVoiceConfig()) {
 				num++;
 			}
@@ -103,7 +109,7 @@ public abstract class MaryConfig {
 	}
 
 	public static MaryConfig getMainConfig() {
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isMainConfig()) {
 				return mc;
 			}
@@ -113,7 +119,7 @@ public abstract class MaryConfig {
 
 	public static Iterable<LanguageConfig> getLanguageConfigs() {
 		Set<LanguageConfig> lcs = new HashSet<LanguageConfig>();
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isLanguageConfig()) {
 				LanguageConfig lc = (LanguageConfig) mc;
 				lcs.add(lc);
@@ -124,7 +130,7 @@ public abstract class MaryConfig {
 
 	public static Iterable<VoiceConfig> getVoiceConfigs() {
 		Set<VoiceConfig> vcs = new HashSet<VoiceConfig>();
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isVoiceConfig()) {
 				VoiceConfig lc = (VoiceConfig) mc;
 				vcs.add(lc);
@@ -134,7 +140,7 @@ public abstract class MaryConfig {
 	}
 
 	public static LanguageConfig getLanguageConfig(Locale locale) {
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isLanguageConfig()) {
 				LanguageConfig lc = (LanguageConfig) mc;
 				if (lc.getLocales().contains(locale)) {
@@ -147,13 +153,13 @@ public abstract class MaryConfig {
 
 	/**
 	 * Get the voice config for the given voice name, or null if there is no such voice config.
-	 * 
+	 *
 	 * @param voiceName
 	 *            voiceName
 	 * @return vc if vc.getName().equals(voiceName), null otherwise
 	 */
 	public static VoiceConfig getVoiceConfig(String voiceName) {
-		for (MaryConfig mc : configLoader) {
+		for (MaryConfig mc : getConfigs()) {
 			if (mc.isVoiceConfig()) {
 				VoiceConfig vc = (VoiceConfig) mc;
 				if (vc.getName().equals(voiceName)) {
@@ -165,12 +171,19 @@ public abstract class MaryConfig {
 	}
 
 	public static Iterable<MaryConfig> getConfigs() {
-		return configLoader;
+		Set<MaryConfig> tmpSet = new HashSet<MaryConfig>();
+		for(MaryConfig mc : configLoader){
+			tmpSet.add(mc);
+		}
+		for(MaryConfig mc :configSet){
+			tmpSet.add(mc);
+		}
+		return tmpSet;
 	}
 
 	/**
 	 * Get the allophone set for the given locale, or null if it cannot be retrieved.
-	 * 
+	 *
 	 * @param locale
 	 *            locale
 	 * @return the allophone set for the given locale, or null of the locale is not supported.
@@ -220,7 +233,7 @@ public abstract class MaryConfig {
 
 	/**
 	 * Convenience access to this config's properties.
-	 * 
+	 *
 	 * @param systemPropertiesOverride
 	 *            whether to use system properties in priority if they exist. If true, any property requested from this properties
 	 *            accessor will first be looked up in the system properties, and only if it is not defined there, it will be
@@ -235,7 +248,7 @@ public abstract class MaryConfig {
 
 	/**
 	 * Get the given property. If it is not defined, the defaultValue is returned.
-	 * 
+	 *
 	 * @param property
 	 *            name of the property to retrieve
 	 * @param defaultValue
@@ -249,7 +262,7 @@ public abstract class MaryConfig {
 	/**
 	 * For the given property name, return the value of that property as a list of items (interpreting the property value as a
 	 * space-separated list).
-	 * 
+	 *
 	 * @param propertyName
 	 *            propertyName
 	 * @return the list of items, or an empty list if the property is not defined or contains no items
